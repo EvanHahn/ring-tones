@@ -1,5 +1,10 @@
-RING_COUNT = 80
+RING_COUNT = 40
 TWOPI = Math.PI * 2
+NOTES = []
+
+[3..7].forEach (octave) ->
+  tsw.scale('C', 'major').forEach (note) ->
+    NOTES.push tsw.frequency("#{note}#{octave}")
 
 canvas = document.createElement 'canvas'
 ctx = canvas.getContext '2d'
@@ -13,12 +18,20 @@ center =
 
 maxRadius = Math.sqrt(center.x * center.x + center.y * center.y)
 ringSize = maxRadius / RING_COUNT
+clicking = false
 
 class Ring
 
   constructor: (@radius) ->
+
     @randomizeColor()
     @saturation = 0
+
+    noteIndex = Math.floor(radius / ringSize) % NOTES.length
+    @volume = tsw.gain(0)
+    @oscillator = tsw.oscillator('sine', NOTES[noteIndex])
+    tsw.connect(@oscillator, @volume, tsw.speakers)
+    @oscillator.start()
 
   randomizeColor: ->
     @baseColor = Spectra.random().darken(40 * (@radius / maxRadius))
@@ -30,8 +43,10 @@ class Ring
   tick: ->
     if clicking
       @lightUp()
+      @volume.gain(0)
     else
-      @saturation = Math.max(0, @saturation - 0.1)
+      @saturation = Math.max(0, @saturation - 0.01)
+      @volume.gain(@saturation)
 
   draw: ->
     color = Spectra(@baseColor.hex()).saturation(@saturation)
@@ -45,11 +60,12 @@ rings = []
 for radius in [1..RING_COUNT]
   rings.push new Ring(radius * ringSize)
 
-clicking = false
 do tick = ->
+
   for ring in rings by -1
     ring.tick()
     ring.draw()
+
   requestAnimationFrame tick
 
 $html.on 'mousemove', (event) ->
