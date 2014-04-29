@@ -1,10 +1,12 @@
-RING_COUNT = 10
+RING_COUNT = 20
 TWOPI = Math.PI * 2
 NOTES = []
 
-[3..7].forEach (octave) ->
-  tsw.scale('C', 'major').forEach (note) ->
-    NOTES.push tsw.frequency("#{note}#{octave}")
+[4..6].forEach (octave) ->
+  scale = tsw.scale('C', 'major')
+  scale.forEach (note, index) ->
+    if scale.length - 1 isnt index
+      NOTES.push tsw.frequency("#{note}#{octave}")
 
 canvas = document.createElement 'canvas'
 ctx = canvas.getContext '2d'
@@ -21,11 +23,11 @@ ringSize = maxRadius / RING_COUNT
 clicking = false
 
 ringFrom = (event) ->
-  mouseX = Math.abs(event.offsetX - center.x)
-  mouseY = Math.abs(event.offsetY - center.y)
+  mouseX = Math.abs(event.clientX - center.x)
+  mouseY = Math.abs(event.clientY - center.y)
   distanceFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
   index = Math.floor(distanceFromCenter / ringSize)
-  return rings[index]
+  return rings[index] or { lightUp: -> } # fake ring
 
 class Ring
 
@@ -34,16 +36,14 @@ class Ring
     @randomizeColor()
     @saturation = 0
 
-    @held = no
-
-    noteIndex = Math.floor(radius / ringSize) % NOTES.length
+    noteIndex = (Math.floor(@radius / ringSize) - 1) % NOTES.length
     @volume = tsw.gain(0)
     @oscillator = tsw.oscillator('sine', NOTES[noteIndex])
     tsw.connect(@oscillator, @volume, tsw.speakers)
     @oscillator.start()
 
   randomizeColor: ->
-    @baseColor = Spectra.random().darken(40 * (@radius / maxRadius))
+    @baseColor = Spectra.random()
 
   lightUp: ->
     @randomizeColor() if @saturation is 0
@@ -51,16 +51,10 @@ class Ring
 
   tick: ->
     @volume.gain(@saturation)
-    if @held
-      @lightUp()
-    else
-      @saturation = Math.max(0, @saturation - 0.01)
+    @saturation = Math.max(0, @saturation - 0.01)
 
   draw: ->
-    if @held
-      color = Spectra('white')
-    else
-      color = Spectra(@baseColor.hex()).saturation(@saturation)
+    color = Spectra(@baseColor.hex()).saturation(@saturation)
     ctx.fillStyle = color.hex()
     ctx.beginPath()
     ctx.arc center.x, center.y, @radius, 0, TWOPI
@@ -79,9 +73,8 @@ do tick = ->
 
   requestAnimationFrame tick
 
-$html.on 'mousemove', (event) ->
+$html.on 'mousemove', (event) -> ringFrom(event).lightUp() if clicking
+$html.on 'mousedown', (event) ->
+  clicking = yes
   ringFrom(event).lightUp()
-
-$html.on 'click', ->
-  ring = ringFrom(event)
-  ring.held = true
+$html.on 'mouseup', -> clicking = no
