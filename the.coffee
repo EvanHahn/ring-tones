@@ -1,4 +1,4 @@
-RING_COUNT = 40
+RING_COUNT = 10
 TWOPI = Math.PI * 2
 NOTES = []
 
@@ -20,12 +20,21 @@ maxRadius = Math.sqrt(center.x * center.x + center.y * center.y)
 ringSize = maxRadius / RING_COUNT
 clicking = false
 
+ringFrom = (event) ->
+  mouseX = Math.abs(event.offsetX - center.x)
+  mouseY = Math.abs(event.offsetY - center.y)
+  distanceFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
+  index = Math.floor(distanceFromCenter / ringSize)
+  return rings[index]
+
 class Ring
 
   constructor: (@radius) ->
 
     @randomizeColor()
     @saturation = 0
+
+    @held = no
 
     noteIndex = Math.floor(radius / ringSize) % NOTES.length
     @volume = tsw.gain(0)
@@ -41,15 +50,17 @@ class Ring
     @saturation = 1
 
   tick: ->
-    if clicking
+    @volume.gain(@saturation)
+    if @held
       @lightUp()
-      @volume.gain(0)
     else
       @saturation = Math.max(0, @saturation - 0.01)
-      @volume.gain(@saturation)
 
   draw: ->
-    color = Spectra(@baseColor.hex()).saturation(@saturation)
+    if @held
+      color = Spectra('white')
+    else
+      color = Spectra(@baseColor.hex()).saturation(@saturation)
     ctx.fillStyle = color.hex()
     ctx.beginPath()
     ctx.arc center.x, center.y, @radius, 0, TWOPI
@@ -69,14 +80,8 @@ do tick = ->
   requestAnimationFrame tick
 
 $html.on 'mousemove', (event) ->
-  mouseX = Math.abs(event.offsetX - center.x)
-  mouseY = Math.abs(event.offsetY - center.y)
-  distanceFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
-  ringIndex = Math.floor(distanceFromCenter / ringSize)
-  rings[ringIndex].lightUp()
+  ringFrom(event).lightUp()
 
-$html.on 'mousedown', ->
-  clicking = yes
-
-$html.on 'mouseup', ->
-  clicking = no
+$html.on 'click', ->
+  ring = ringFrom(event)
+  ring.held = true
