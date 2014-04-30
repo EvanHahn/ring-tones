@@ -44,10 +44,12 @@ class Ring
 
   randomizeColor: ->
     @baseColor = Spectra.random()
+    while @baseColor.isDark()
+      @baseColor = Spectra.random()
 
   lightUp: ->
     @randomizeColor() if @saturation is 0
-    @saturation = 1
+    @saturation = 0.75
 
   tick: (dt) ->
     @volume.gain(@saturation)
