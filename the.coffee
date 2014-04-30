@@ -1,4 +1,4 @@
-RING_COUNT = 20
+RING_COUNT = 30
 TWOPI = Math.PI * 2
 NOTES = []
 
@@ -23,8 +23,8 @@ ringSize = maxRadius / RING_COUNT
 clicking = false
 
 ringFrom = (event) ->
-  mouseX = Math.abs(event.clientX - center.x)
-  mouseY = Math.abs(event.clientY - center.y)
+  mouseX = Math.abs(event.pageX - center.x)
+  mouseY = Math.abs(event.pageY - center.y)
   distanceFromCenter = Math.sqrt(mouseX * mouseX + mouseY * mouseY)
   index = Math.floor(distanceFromCenter / ringSize)
   return rings[index] or { lightUp: -> } # fake ring
@@ -49,9 +49,9 @@ class Ring
     @randomizeColor() if @saturation is 0
     @saturation = 1
 
-  tick: ->
+  tick: (dt) ->
     @volume.gain(@saturation)
-    @saturation = Math.max(0, @saturation - 0.01)
+    @saturation = Math.max(0, @saturation - (0.000001 * dt))
 
   draw: ->
     color = Spectra(@baseColor.hex()).saturation(@saturation)
@@ -65,16 +65,23 @@ rings = []
 for radius in [1..RING_COUNT]
   rings.push new Ring(radius * ringSize)
 
-do tick = ->
-
+lastT = 0
+tick = (t) ->
+  dt = t - lastT
   for ring in rings by -1
-    ring.tick()
+    ring.tick(dt)
     ring.draw()
-
   requestAnimationFrame tick
+requestAnimationFrame tick
 
 $html.on 'mousemove', (event) -> ringFrom(event).lightUp() if clicking
 $html.on 'mousedown', (event) ->
   clicking = yes
   ringFrom(event).lightUp()
 $html.on 'mouseup', -> clicking = no
+
+# $(canvas).on 'touchmove', (event) ->
+#   ringFrom(event).lightUp()
+# $(canvas).on 'touchstart', (event) ->
+#   ringFrom(event).lightUp()
+#   event.preventDefault()
