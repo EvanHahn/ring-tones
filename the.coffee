@@ -46,6 +46,8 @@ class Ring
     @baseColor = Spectra.random()
     while @baseColor.isDark()
       @baseColor = Spectra.random()
+    @baseColor.green(@baseColor.green() / 2)
+    @baseColor.blue(@baseColor.blue() / 3)
 
   lightUp: ->
     @randomizeColor() if @saturation is 0
