@@ -83,9 +83,3 @@ $html.on 'mousedown', (event) ->
   clicking = yes
   ringFrom(event).lightUp()
 $html.on 'mouseup', -> clicking = no
-
-# $(canvas).on 'touchmove', (event) ->
-#   ringFrom(event).lightUp()
-# $(canvas).on 'touchstart', (event) ->
-#   ringFrom(event).lightUp()
-#   event.preventDefault()
